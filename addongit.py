@@ -61,9 +61,10 @@ app_settings = {
                'os': os.name,
                'config_name': os.path.join(app_runtime['dir'], 'addongit.cfg'),
                'launcher_path': None,
-               'wow_base': None,
+               'wow_interface_base': None,
                'remote_repo': None,
-               'addon_base': 'Interface/AddOns',
+               'remote_branch': 'master',
+               'addon_base': 'AddOns',
                'config_base_name': None,
                'launch_wow': False,
                'addon_path': None,
@@ -80,11 +81,12 @@ log_settings = {
                }
 
 cfg = {
-      'wow_base': None,
+      'wow_interface_base': None,
       'addon_base': None,
       'launch_wow': None,
       'log_path': None,
-      'log_level': None
+      'log_level': None,
+      'remote_branch': None
       }
       
 LOG_LEVELS = {
@@ -145,16 +147,16 @@ def get_config_base_name():
                     \n\n(EX: .nzeer): ')
   
 def get_wow_base():
-  return raw_input('\nEnter the full path to your WoW directory: ')
+  return raw_input('\nEnter the full path to your WoW Interface directory: ')
 
 def get_remote_repo():
   return raw_input('\nEnter the full address to the remote repo. \
                     \n\n(EX: git://github.com/nzeer/Addons.git): ')
 
-def rebase_local_addons(addon_path, wow_base):
+def rebase_local_addons(addon_path, wow_interface_base):
   log = logging.getLogger()
-  log.debug('rebase_local_addons(%s, %s)' % (addon_path, wow_base))
-  os.chdir(wow_base)
+  log.debug('rebase_local_addons(%s, %s)' % (addon_path, wow_interface_base))
+  os.chdir(wow_interface_base)
   log.info('Existing AddOns directory located.')
   log.info('Rebasing addons.')
   print 'Existing AddOns directory located.\nRebasing addons.'
@@ -166,17 +168,17 @@ def rebase_local_addons(addon_path, wow_base):
   print 'Rebase complete'
   log.info('Rebase complete')
   
-def init_git(addon_path, remote_repo, config_path):
+def init_git(addon_path, remote_repo, config_path, branch='master'):
   log = logging.getLogger()
-  log.debug('init_git(%s, %s, %s)' % (addon_path, remote_repo, config_path))
+  log.debug('init_git(%s, %s, %s, %s)' % (addon_path, remote_repo, config_path, branch))
   print 'Initializing git repo'
   log.info('Initializing git repo')
-  log.debug('Initializing git repo %s in %s' % (remote_repo, addon_path))
+  log.debug('Initializing git repo (%s) %s in %s' % (branch, remote_repo, addon_path))
   assert os.path.exists(addon_path)
   os.chdir(addon_path)
   log.debug('cd %s' % addon_path)
   
-  cmd_git_clone = 'git clone %s .' % remote_repo
+  cmd_git_clone = 'git clone -b %s %s .' % (branch, remote_repo)
   cmd_attrib_set_hidden = 'attrib +h %s' % config_path
   
   os.system(cmd_git_clone)
@@ -219,15 +221,15 @@ def init_wow(launcher_path):
   log.info('Launching WoW')
   os.system('start %s' % (launcher_path))
   
-def update(addon_path):
+def update(addon_path, branch='master'):
   log = logging.getLogger()
-  log.debug('update(%s)' % addon_path)
+  log.debug('update(%s, %s)' % (addon_path, branch))
   os.chdir(addon_path)
   log.debug('cd %s' % addon_path)
   print 'Updating addons'
   log.info('Updating addons')
-  log.debug('Running git pull from %s' % addon_path)
-  os.system('git pull')
+  log.debug('Running git pull origin %s from %s' % (branch, addon_path))
+  os.system('git pull origin %s' % branch)
   log.debug('git pull complete.')
     
 def config_defaults():
@@ -235,9 +237,15 @@ def config_defaults():
   global cfg
   global app_settings
   global config
-  
+
   try:
-    cfg['wow_base'] = config.get('local', 'wow_directory')
+    cfg['remote_branch'] = config.get('remote', 'branch')
+  except Exception, e:
+    log.error(str(e))
+    pass
+
+  try:
+    cfg['wow_interface_base'] = config.get('local', 'wow_interface_directory')
   except Exception, e:
     log.error(str(e))
     pass
@@ -255,13 +263,14 @@ def config_defaults():
     pass
     
   # Override defaults where necessary.
-  app_settings['wow_base'] = cfg['wow_base'] if cfg['wow_base'] is not None else app_settings['wow_base']
+  app_settings['wow_interface_base'] = cfg['wow_interface_base'] if cfg['wow_interface_base'] is not None else app_settings['wow_interface_base']
   app_settings['addon_base'] = cfg['addon_base'] if cfg['addon_base'] is not None else app_settings['addon_base']
   app_settings['launch_wow'] = cfg['launch_wow'] if cfg['launch_wow'] is not None else app_settings['launch_wow']
+  app_settings['remote_branch'] = cfg['remote_branch'] if cfg['remote_branch'] is not None else app_settings['remote_branch']
   
   # make sure our path is correctly formed with no trailing slashes incase
   # we need to perform some voodoo  
-  app_settings['addon_path'] = os.path.normpath(os.path.join(app_settings['wow_base'], app_settings['addon_base']))
+  app_settings['addon_path'] = os.path.normpath(os.path.join(app_settings['wow_interface_base'], app_settings['addon_base']))
   app_settings['config_path'] = os.path.join(app_settings['addon_path'], app_settings['config_base_name'])
   app_settings['git_path'] = os.path.join(app_settings['addon_path'], '.git')
 
@@ -449,32 +458,32 @@ def main(options=[], args=[]):
   if not os.path.exists(app_settings['addon_path']):
     log.info('%s not found' % app_settings['addon_path'])
     # is wow installed
-    assert os.path.exists(app_settings['wow_base'])
-    log.debug('%s found' % app_settings['wow_base'])
+    assert os.path.exists(app_settings['wow_interface_base'])
+    log.debug('%s found' % app_settings['wow_interface_base'])
     print 'AddOns directory not found.'
     print 'Creating'
     os.makedirs(app_settings['addon_path'])
-    init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'])
+    init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'], app_settings['remote_branch'])
 
   # if its not our repo rebase addons and init
   elif is_initial_run(app_settings['config_path'], app_settings['git_path']):
     # Either the path didnt exist and we've created it
     # or it was the initial run and we've rebased previous addon collection
-    rebase_local_addons(app_settings['addon_path'], app_settings['wow_base'])
+    rebase_local_addons(app_settings['addon_path'], app_settings['wow_interface_base'])
     
     # Verify that our AddOn path is where it should be before continuing.
-    init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'])
+    init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'], app_settings['remote_branch'])
   else:
     try:
-      update(app_settings['addon_path'])
+      update(app_settings['addon_path'], app_settings['remote_branch'])
     except Exception, e:
       print str(e)
       log.error(str(e))
       log.debug('git pull failed.')
       print 'Correcting'
       log.debug('Rebasing addons and initializing git')
-      rebase_local_addons(app_settings['addon_path'], app_settings['wow_base'])
-      init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'])
+      rebase_local_addons(app_settings['addon_path'], app_settings['wow_interface_base'])
+      init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'], app_settings['remote_branch'])
     print 'Done.'
     
   if app_settings['launch_wow']: init_wow(app_settings['launcher_path'])
@@ -513,6 +522,5 @@ if __name__ == '__main__':
     (_opts, _args) = _parser.parse_args()
     return _opts, _args
 
-  # TODO: add optparse
   opts, args = getOpts()
   main(opts, args)
