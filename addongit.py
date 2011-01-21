@@ -1,8 +1,8 @@
 '''
 Title: addongit
-Version: 1.1
+Version: 1.2
 Author: Robert Jackson (rmjackson 'at' gmail 'dot' com)
-Date: 01.17.2011
+Date: 01.20.2011
 Summary:
   Handles setting up my addons repo and cloning/updating to the local wow install.
 '''
@@ -146,7 +146,7 @@ def get_config_base_name():
                     \nThis identifies the repo as yours when the updater runs. \
                     \n\n(EX: .nzeer): ')
   
-def get_wow_base():
+def get_wow_Interface_base():
   return raw_input('\nEnter the full path to your WoW Interface directory: ')
 
 def get_remote_repo():
@@ -228,8 +228,10 @@ def update(addon_path, branch='master'):
   log.debug('cd %s' % addon_path)
   print 'Updating addons'
   log.info('Updating addons')
-  log.debug('Running git pull origin %s from %s' % (branch, addon_path))
-  os.system('git pull origin %s' % branch)
+  log.debug('Running git checkout %s' % branch)
+  os.system('git checkout %s' % branch)
+  log.debug('Running git pull origin from %s' % addon_path)
+  os.system('git pull origin')
   log.debug('git pull complete.')
     
 def config_defaults():
@@ -319,7 +321,7 @@ def config_win_reg():
       log.debug('Found %s key(s).' % (wow_reg['wow_registry_keys']))
       if wow_reg['wow_registry_keys'] > 0:
         log.debug('Registry keys detected.')
-        app_settings['wow_base'] = wreg.QueryValueEx(wow_reg['key'], 'InstallPath')[0].encode('utf-8')
+        app_settings['wow_interface_base'] = os.path.join(wreg.QueryValueEx(wow_reg['key'], 'InstallPath')[0].encode('utf-8'), 'Interface')
         app_settings['launcher_path'] = wreg.QueryValueEx(wow_reg['key'], 'GamePath')[0].encode('utf-8')
         
       log_dict(wow_reg, 'registry settings')
