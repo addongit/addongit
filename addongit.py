@@ -71,7 +71,8 @@ app_settings = {
                'config_path': None,
                'base_dir': app_runtime['dir'],
                'version': None,
-               'name': 'addongit'
+               'name': 'addongit',
+               'local_branch': 'master'
              }
              
 log_settings = {
@@ -102,6 +103,17 @@ def init_config():
   c.optionxform = str
   return c
 
+def is_new_branch(current_local_branch, requested_branch):
+  if requested_branch != current_local_branch: return True
+  return False
+  
+def get_local_branch(config_base_name):
+  c = init_config()
+  config_file = os.path.join(config_base_name, 'config')
+  c.read(config_file)
+  current_local_branch = c.get('local', 'branch')
+  return current_local_branch
+  
 config = init_config()
 wreg = None
 
