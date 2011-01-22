@@ -107,7 +107,7 @@ def is_new_branch(current_local_branch, requested_branch):
   if requested_branch != current_local_branch: return True
   return False
   
-def get_local_branch(config_base_name):
+def get_current_local_branch(config_base_name):
   c = init_config()
   config_file = os.path.join(config_base_name, 'config')
   c.read(config_file)
@@ -430,8 +430,9 @@ def main(options=[], args=[]):
   # make sure there's a valid repo to talk to.
   assert app_settings['remote_repo'] is not None
   
-  new_version_path = '%s.new' % app_settings['base_dir']
   '''
+  new_version_path = '%s.new' % app_settings['base_dir']
+  
   if options.clean_up:
     shutil.rmtree(new_version_path)
   
