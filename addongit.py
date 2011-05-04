@@ -71,9 +71,7 @@ app_settings = {
                'config_path': None,
                'base_dir': app_runtime['dir'],
                'version': None,
-               'name': 'addongit',
-               'local_branch': 'master',
-               'force_rebase': False
+               'name': 'addongit'
              }
              
 log_settings = {
@@ -82,14 +80,13 @@ log_settings = {
                'app_name': 'addongit'
                }
 
-cfg = {
-      'wow_interface_base': None,
-      'addon_base': None,
-      'launch_wow': None,
-      'log_path': None,
-      'log_level': None,
-      'remote_branch': None,
-      'force_rebase': None
+cfg = { 'wow_interface_base': None,
+        'addon_base':         None,
+        'launch_wow':         None,
+        'log_path':           None,
+        'log_level':          None,
+        'remote_branch':      None,
+        'uni_branch':          None
       }
       
 LOG_LEVELS = {
@@ -105,22 +102,9 @@ def init_config():
   c.optionxform = str
   return c
 
-def is_new_branch(current_local_branch, requested_branch):
-  if requested_branch != current_local_branch: return True
-  return False
-  
-def get_current_local_branch(config_base_name):
-  c = init_config()
-  config_file = os.path.join(config_base_name, 'config')
-  c.read(config_file)
-  current_local_branch = c.get('app', 'branch')
-  del c
-  return current_local_branch
-  
 config = init_config()
 wreg = None
 
-'''
 def app_up2date(config_path, local_version):
   log = logging.getLogger()
   log.info('Checking for application update')
@@ -145,7 +129,6 @@ def app_up2date(config_path, local_version):
       log.error('Unable to determine if update is available.')
       print 'Unable to determine if update is available.'
   return True
-'''
 
 def create_log_handle(log_path, log_level, app_name):
   global LOG_LEVELS
@@ -281,18 +264,11 @@ def config_defaults():
     log.error(str(e))
     pass
     
-  try:
-    cfg['force_rebase'] = config.getboolean('local', 'rebase')
-  except Exception, e:
-    log.error(str(e))
-    pass
-    
   # Override defaults where necessary.
   app_settings['wow_interface_base'] = cfg['wow_interface_base'] if cfg['wow_interface_base'] is not None else app_settings['wow_interface_base']
   app_settings['addon_base'] = cfg['addon_base'] if cfg['addon_base'] is not None else app_settings['addon_base']
   app_settings['launch_wow'] = cfg['launch_wow'] if cfg['launch_wow'] is not None else app_settings['launch_wow']
   app_settings['remote_branch'] = cfg['remote_branch'] if cfg['remote_branch'] is not None else app_settings['remote_branch']
-  app_settings['force_rebase'] = cfg['force_rebase'] if cfg['force_rebase'] is not None else app_settings['force_rebase']
   
   # make sure our path is correctly formed with no trailing slashes incase
   # we need to perform some voodoo  
@@ -371,6 +347,7 @@ def clean_up():
   del wow_reg
 
   
+
 # Begin main app
 def main(options=[], args=[]):
   global config
@@ -410,10 +387,9 @@ def main(options=[], args=[]):
       
   elif app_settings['os'] == 'posix':
     # TODO: determine how to handle looking up OSX/linux default install paths'
-    if not os.path.exits('/Applications/World of Warcraft'):
-      log.debug('Cannot determine install path for OS: %s' % app_settings['os'])
+    pass
   else:
-    log.debug('Unknown OS: %s' % app_settings['os'])
+    pass
     
   try:
     config.read(app_settings['config_name'])
@@ -442,9 +418,8 @@ def main(options=[], args=[]):
   # make sure there's a valid repo to talk to.
   assert app_settings['remote_repo'] is not None
   
-  '''
   new_version_path = '%s.new' % app_settings['base_dir']
-  
+  '''
   if options.clean_up:
     shutil.rmtree(new_version_path)
   
@@ -479,8 +454,7 @@ def main(options=[], args=[]):
     print 'app not up2date'
     pass
     # Restart 
-  '''
-  
+  '''  
   # is the proposed addon path valid
   # if not, create it.
   if not os.path.exists(app_settings['addon_path']):
@@ -493,16 +467,12 @@ def main(options=[], args=[]):
     os.makedirs(app_settings['addon_path'])
     init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'], app_settings['remote_branch'])
 
-  elif app_settings['force_rebase']:
-    log.debug('forcing rebase')
-    rebase_local_addons(app_settings['addon_path'], app_settings['wow_interface_base'])
-    # Verify that our AddOn path is where it should be before continuing.
-    init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'], app_settings['remote_branch'])
   # if its not our repo rebase addons and init
   elif is_initial_run(app_settings['config_path'], app_settings['git_path']):
     # Either the path didnt exist and we've created it
     # or it was the initial run and we've rebased previous addon collection
     rebase_local_addons(app_settings['addon_path'], app_settings['wow_interface_base'])
+    
     # Verify that our AddOn path is where it should be before continuing.
     init_git(app_settings['addon_path'], app_settings['remote_repo'], app_settings['config_path'], app_settings['remote_branch'])
   else:
@@ -525,8 +495,11 @@ def main(options=[], args=[]):
   sys.exit('Finished.')
   
 if __name__ == '__main__':
-  '''
+
   def getOpts():
+    '''
+    Setup our cmdline variables.
+    '''
     _parser = OptionParser(usage = "usage: %prog [options]")
     
     _parser.add_option('--update', 
@@ -550,7 +523,6 @@ if __name__ == '__main__':
                        
     (_opts, _args) = _parser.parse_args()
     return _opts, _args
-  '''
-  #opts, args = getOpts()
-  
+
+  opts, args = getOpts()
   main(opts, args)
